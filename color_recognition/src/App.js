@@ -13,8 +13,8 @@ const COLOR_LABEL = [
   'cyan',
   'brown',
 ];
-const MODEL_KEY = 'localstorage://model';
-const RAWDATA_KEY = 'localstorage://rawdata';
+const MODEL_KEY = 'localstorage://model/color_recognition';
+const RAWDATA_KEY = 'localstorage://rawdata/color_recognition';
 
 class App extends React.Component {
   constructor(props) {
