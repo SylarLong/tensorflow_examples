@@ -7,6 +7,7 @@ const IMAGE_WIDTH = 28;
 const IMAGE_HEIGHT = 28;
 const MODEL_KEY = 'localstorage://model/digit_recognition';
 const RAWDATA_KEY = 'localstorage://rawdata/digit_recognition';
+const LABELS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 class App extends React.Component {
   signatureCanvas = React.createRef();
@@ -37,12 +38,12 @@ class App extends React.Component {
       }
 
       numbers.push(datasetBytesView);
-      labels.push(dl.label);
+      labels.push(LABELS.indexOf(dl.label));
     });
 
     const xs = tf.tensor(numbers).reshape([dataList.length, 28, 28, 1]);
     const labelsTensor = tf.tensor1d(labels, 'int32');
-    const ys = tf.oneHot(labelsTensor, 10).cast('float32');
+    const ys = tf.oneHot(labelsTensor, LABELS.length).cast('float32');
 
     labelsTensor.dispose();
 
@@ -120,6 +121,7 @@ class App extends React.Component {
     });
 
     await model.fit(xs, ys, {
+      batchSize: 512,
       shuffle: true,
       validationSplit: 0.01,
       epochs: 100,
@@ -158,7 +160,7 @@ class App extends React.Component {
 
       const index = preds.argMax(1).dataSync()[0];
 
-      this.setState({ currentImage: imageData, label: index }, () => {
+      this.setState({ currentImage: imageData, label: LABELS[index] }, () => {
         document.getElementById('review_canvas').getContext('2d').putImageData(imageData, 0, 0);
         this.signatureCanvas.clear();
       });
@@ -188,7 +190,7 @@ class App extends React.Component {
         const imageData = ctx.getImageData(0, 0, width, height);
         const { dataList } = this.state;
 
-        dataList.push({ data: imageData, label: parseInt(img.src.split('/').pop().split('.').shift()) });
+        dataList.push({ data: imageData, label: img.src.split('/').pop().split('.').shift() });
 
         this.setState({ dataList }, resolve);
       }
@@ -223,7 +225,7 @@ class App extends React.Component {
   correct = (label) => {
     const { dataList, currentImage } = this.state;
 
-    dataList.push({ data: currentImage, label: label });
+    dataList.push({ data: currentImage, label });
 
     this.setState({ dataList, label });
   }
@@ -288,16 +290,16 @@ class App extends React.Component {
         <hr />
         <canvas id="review_canvas" width={28} height={28}></canvas>
         <label>it should be {label}</label>
-        <button onClick={() => this.correct(0)}>0</button>{' '}
-        <button onClick={() => this.correct(1)}>1</button>{' '}
-        <button onClick={() => this.correct(2)}>2</button>{' '}
-        <button onClick={() => this.correct(3)}>3</button>{' '}
-        <button onClick={() => this.correct(4)}>4</button>{' '}
-        <button onClick={() => this.correct(5)}>5</button>{' '}
-        <button onClick={() => this.correct(6)}>6</button>{' '}
-        <button onClick={() => this.correct(7)}>7</button>{' '}
-        <button onClick={() => this.correct(8)}>8</button>{' '}
-        <button onClick={() => this.correct(9)}>9</button>{' '}
+        <button onClick={() => this.correct('0')}>0</button>{' '}
+        <button onClick={() => this.correct('1')}>1</button>{' '}
+        <button onClick={() => this.correct('2')}>2</button>{' '}
+        <button onClick={() => this.correct('3')}>3</button>{' '}
+        <button onClick={() => this.correct('4')}>4</button>{' '}
+        <button onClick={() => this.correct('5')}>5</button>{' '}
+        <button onClick={() => this.correct('6')}>6</button>{' '}
+        <button onClick={() => this.correct('7')}>7</button>{' '}
+        <button onClick={() => this.correct('8')}>8</button>{' '}
+        <button onClick={() => this.correct('9')}>9</button>{' '}
       </div>
     );
   }
