@@ -140,6 +140,8 @@ class App extends React.Component {
       },
     });
 
+    // await model.trainOnBatch(xs, ys);
+
     this.saveModel();
   }
 
@@ -271,6 +273,16 @@ class App extends React.Component {
           <img src="/train_data/7.png" alt='' />
           <img src="/train_data/8.png" alt='' />
           <img src="/train_data/9.png" alt='' />
+          <img src="/train_data/0.png" alt='' />
+          <img src="/train_data/1.png" alt='' />
+          <img src="/train_data/2.png" alt='' />
+          <img src="/train_data/3.png" alt='' />
+          <img src="/train_data/4.png" alt='' />
+          <img src="/train_data/5.png" alt='' />
+          <img src="/train_data/6.png" alt='' />
+          <img src="/train_data/7.png" alt='' />
+          <img src="/train_data/8.png" alt='' />
+          <img src="/train_data/9.png" alt='' />
         </div>
         <div>data size: {dataList.length}</div>
         <div>
@@ -286,10 +298,14 @@ class App extends React.Component {
           />
         </div>
         <button onClick={this.predict}>predict</button>{' '}
-        <button onClick={this.train}>train</button>
+        <button onClick={this.train}>train</button>{' '}
+        <button onClick={this.downloadModel}>download model</button>
         <hr />
-        <canvas id="review_canvas" width={28} height={28}></canvas>
-        <label>it should be {label}</label>
+        <div>
+          <canvas id="review_canvas" width={28} height={28}></canvas>{' '}
+          <label>it should be {label}</label>
+        </div>
+        <hr />
         <button onClick={() => this.correct('0')}>0</button>{' '}
         <button onClick={() => this.correct('1')}>1</button>{' '}
         <button onClick={() => this.correct('2')}>2</button>{' '}
