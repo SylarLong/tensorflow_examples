@@ -27,25 +27,27 @@ class App extends React.Component {
       g: 255,
       b: 255,
       label: '',
-      data: localStorage.getItem(RAWDATA_KEY) ?
-        JSON.parse(localStorage.getItem(RAWDATA_KEY)) :
-        [
-          { r: 255, g: 0, b: 0, label: 'red' },
-          { r: 0, g: 255, b: 0, label: 'green' },
-          { r: 0, g: 0, b: 255, label: 'blue' },
-        ]
+      data: undefined,
     };
   }
 
   saveModel = async () => {
-    const { data, model } = this.state;
+    const { model } = this.state;
 
     await model.save(MODEL_KEY);
-    localStorage.setItem(RAWDATA_KEY, JSON.stringify(data));
+
+    this.setState({ data: undefined });
   }
 
   normalizeXY = () => {
-    const { data } = this.state;
+    const {
+      data = [
+        { r: 255, g: 0, b: 0, label: 'red' },
+        { r: 0, g: 255, b: 0, label: 'green' },
+        { r: 0, g: 0, b: 255, label: 'blue' },
+        { r: 0, g: 0, b: 255, label: 'blue' },
+      ]
+    } = this.state;
     const colors = [];
     const labels = [];
 
@@ -140,16 +142,18 @@ class App extends React.Component {
   }
 
   correct = (label) => {
-    const { r, g, b, data } = this.state;
+    const { r, g, b, data = [] } = this.state;
 
     data.push({ r, g, b, label });
 
-    this.setState({ label });
+    this.setState({ label, data });
   }
 
   initModel = async () => {
     try {
       const m = await tf.loadLayersModel(MODEL_KEY);
+
+      m.layers[0].trainable = false;
 
       this.setState({ model: m });
     } catch {
