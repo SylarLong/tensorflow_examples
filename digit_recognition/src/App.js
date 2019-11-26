@@ -6,7 +6,6 @@ import './App.css';
 const IMAGE_WIDTH = 28;
 const IMAGE_HEIGHT = 28;
 const MODEL_KEY = 'localstorage://model/digit_recognition';
-const RAWDATA_KEY = 'localstorage://rawdata/digit_recognition';
 const LABELS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 class App extends React.Component {
@@ -20,7 +19,8 @@ class App extends React.Component {
       model: undefined,
       label: undefined,
       currentImage: undefined,
-      dataList: []
+      dataList: [],
+      prediction: [],
     };
   }
 
@@ -33,7 +33,7 @@ class App extends React.Component {
       const { data } = dl.data;
       const datasetBytesView = new Float32Array(data.length / 4);
 
-      for (let i = 0; i < data.length / 4; i++) {
+      for (let i = 0; i <= data.length / 4; i++) {
         datasetBytesView[i] = data[i * 4] / 255;
       }
 
@@ -41,7 +41,20 @@ class App extends React.Component {
       labels.push(LABELS.indexOf(dl.label));
     });
 
-    const xs = tf.tensor(numbers).reshape([dataList.length, 28, 28, 1]);
+    if (dataList.length) {
+      const lastObject = dataList.slice(dataList.length - 1);
+
+      const dbv = new Float32Array(lastObject.length / 4);
+
+      for (let i = 0; i <= lastObject.length / 4; i++) {
+        dbv[i] = lastObject[i * 4] / 255;
+      }
+
+      numbers.push(dbv);
+      labels.push(LABELS.indexOf(lastObject.label));
+    }
+
+    const xs = tf.tensor(numbers).reshape([dataList.length + 1, 28, 28, 1]);
     const labelsTensor = tf.tensor1d(labels, 'int32');
     const ys = tf.oneHot(labelsTensor, LABELS.length).cast('float32');
 
@@ -51,10 +64,11 @@ class App extends React.Component {
   }
 
   saveModel = async () => {
-    const { dataList, model } = this.state;
+    const { model } = this.state;
 
     await model.save(MODEL_KEY);
-    // localStorage.setItem(RAWDATA_KEY, JSON.stringify(data));
+
+    this.setState({ dataList: [] });
   }
 
   setup = () => {
@@ -104,9 +118,9 @@ class App extends React.Component {
   }
 
   train = async () => {
-    const { model, training } = this.state;
+    const { model, training, dataList } = this.state;
 
-    if (training) {
+    if (training || !dataList.length) {
       return;
     }
 
@@ -120,14 +134,13 @@ class App extends React.Component {
       metrics: ['accuracy']
     });
 
-    await model.fit(xs, ys, {
-      batchSize: 512,
+    model.fit(xs, ys, {
       shuffle: true,
       validationSplit: 0.01,
       epochs: 100,
       callbacks: {
         onEpochEnd: (epoch, logs) => {
-          console.log('onEpochEnd', epoch, logs.loss.toFixed(5));
+          console.log('onEpochEnd', epoch, logs);
         },
         onBatchEnd: async (batch, logs) => {
           console.log('onBatchEnd', batch, logs);
@@ -136,13 +149,10 @@ class App extends React.Component {
         onTrainEnd: () => {
           console.log('finished');
           this.setState({ training: false });
+          this.saveModel();
         },
       },
     });
-
-    // await model.trainOnBatch(xs, ys);
-
-    this.saveModel();
   }
 
   predict = () => {
@@ -158,11 +168,13 @@ class App extends React.Component {
       const testxs = tf.tensor(sourceData).reshape([1, IMAGE_WIDTH, IMAGE_HEIGHT, 1]);
       const preds = model.predict(testxs);
 
-      preds.print();
-
       const index = preds.argMax(1).dataSync()[0];
 
-      this.setState({ currentImage: imageData, label: LABELS[index] }, () => {
+      this.setState({
+        currentImage: imageData,
+        label: LABELS[index],
+        prediction: Array.from(preds.dataSync())
+      }, () => {
         document.getElementById('review_canvas').getContext('2d').putImageData(imageData, 0, 0);
         this.signatureCanvas.clear();
       });
@@ -170,12 +182,6 @@ class App extends React.Component {
   }
 
   loadPresetData = () => {
-    // const storageData = localStorage.getItem(RAWDATA_KEY);
-
-    // if (storageData) {
-    //   return this.setState({ dataList: storageData });
-    // }
-
     const width = 28;
     const height = 28;
     const imgs = document
@@ -236,8 +242,12 @@ class App extends React.Component {
     try {
       const m = await tf.loadLayersModel(MODEL_KEY);
 
+      m.layers[0].trainable = false;
+
       this.setState({ model: m });
     } catch {
+      await this.loadPresetData();
+
       this.setState({ model: tf.sequential() }, () => this.setup());
     }
   }
@@ -248,31 +258,16 @@ class App extends React.Component {
     model.save('downloads://digit_recognition');
   }
 
-  init = async () => {
-    await this.loadPresetData();
+  componentDidMount() {
     this.initModel();
   }
 
-  componentDidMount() {
-    this.init();
-  }
-
   render() {
-    const { dataList, label } = this.state;
+    const { dataList, label, prediction, training } = this.state;
 
     return (
       <div className="App">
         <div id="train_data" style={{ display: 'none' }}>
-          <img src="/train_data/0.png" alt='' />
-          <img src="/train_data/1.png" alt='' />
-          <img src="/train_data/2.png" alt='' />
-          <img src="/train_data/3.png" alt='' />
-          <img src="/train_data/4.png" alt='' />
-          <img src="/train_data/5.png" alt='' />
-          <img src="/train_data/6.png" alt='' />
-          <img src="/train_data/7.png" alt='' />
-          <img src="/train_data/8.png" alt='' />
-          <img src="/train_data/9.png" alt='' />
           <img src="/train_data/0.png" alt='' />
           <img src="/train_data/1.png" alt='' />
           <img src="/train_data/2.png" alt='' />
@@ -297,8 +292,8 @@ class App extends React.Component {
             ref={ref => ref && (this.signatureCanvas = ref)}
           />
         </div>
-        <button onClick={this.predict}>predict</button>{' '}
-        <button onClick={this.train}>train</button>{' '}
+        <button onClick={this.predict}>{training ? 'training' : 'predict'}</button>{' '}
+        <button onClick={this.train}>{training ? 'training' : 'train'}</button>{' '}
         <button onClick={this.downloadModel}>download model</button>
         <hr />
         <div>
@@ -316,6 +311,14 @@ class App extends React.Component {
         <button onClick={() => this.correct('7')}>7</button>{' '}
         <button onClick={() => this.correct('8')}>8</button>{' '}
         <button onClick={() => this.correct('9')}>9</button>{' '}
+        <hr />
+        <div>
+          <ul>
+            {
+              prediction.map((p, i) => <li key={i}><label>{LABELS[i]}:</label> {(p * 100).toFixed(3)}%</li>)
+            }
+          </ul>
+        </div>
       </div>
     );
   }
