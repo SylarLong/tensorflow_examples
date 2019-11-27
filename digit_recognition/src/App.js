@@ -258,6 +258,18 @@ class App extends React.Component {
     model.save('downloads://digit_recognition');
   }
 
+  loadModelFromFile = async () => {
+    const uploadJSONInput = document.getElementById('upload-json');
+    const uploadWeightsInput = document.getElementById('upload-weights');
+    const model = await tf.loadLayersModel(tf.io.browserFiles(
+      [uploadJSONInput.files[0], uploadWeightsInput.files[0]])
+    );
+
+    model.layers[0].trainable = false;
+
+    this.setState({ model });
+  }
+
   componentDidMount() {
     this.initModel();
   }
@@ -295,6 +307,10 @@ class App extends React.Component {
         <button onClick={this.predict}>{training ? 'training' : 'predict'}</button>{' '}
         <button onClick={this.train}>{training ? 'training' : 'train'}</button>{' '}
         <button onClick={this.downloadModel}>download model</button>
+        <hr />
+        <input type="file" id="upload-json" />
+        <input type="file" id="upload-weights" />
+        <button onClick={this.loadModelFromFile}>upload</button>
         <hr />
         <div>
           <canvas id="review_canvas" width={28} height={28}></canvas>{' '}
